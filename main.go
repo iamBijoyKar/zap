@@ -1,11 +1,9 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -16,22 +14,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func run_command(command []string) error {
-	if len(command) == 0 {
-		out.PrintError("No command specified!\n")
-		return errors.New("no command found in the task")
-	}
-	cmd := exec.Command(command[0], command[1:]...)
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return errors.New("unable to the command")
-	}
-	return nil
-}
+var Version string = "1.0.0"
 
 func main() {
+	out.PrintDefault((fmt.Sprintf("\n\t⚡ %s %s (golang)\n", color.YellowString("Zap"), color.YellowString(Version))))
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal("Error getting working directory:", err)
@@ -53,6 +39,8 @@ func main() {
 		return
 	}
 
+	fmt.Printf("\t - Total Tasks: %d\n\n", len(yml.Tasks))
+
 	var completed_tasks []tasks.Task = make([]tasks.Task, len(yml.Tasks))
 	var failed_tasks []tasks.Task = make([]tasks.Task, len(yml.Tasks))
 
@@ -64,7 +52,7 @@ func main() {
 			continue
 		}
 		out.PrintDefault(fmt.Sprintf("%d. Running Task ... 🔨 %s\n > %s\n", idx+1, color.CyanString(val.Name), strings.Join(val.Command, " ")))
-		err := run_command(val.Command)
+		err := tasks.RunCommand(val.Command)
 		if err != nil {
 			out.PrintError(fmt.Sprintf("Failed to complete the task! Unable to run the provided command! \n%s\n", strings.Join(val.Command, " ")))
 			failed_tasks = append(failed_tasks, val)
@@ -73,4 +61,6 @@ func main() {
 		completed_tasks = append(completed_tasks, val)
 		out.PrintDefault(fmt.Sprintf("Task completed ✅\n\n"))
 	}
+	out.PrintDefault(fmt.Sprintf("Total Completed Tasks: %d\n", len(completed_tasks)))
+	out.PrintDefault(fmt.Sprintf("Total Failed Tasks: %d\n", len(failed_tasks)))
 }
