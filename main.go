@@ -19,25 +19,45 @@ func main() {
 			{
 				Name:  "run",
 				Usage: "Run tasks from zap.yaml",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "verbose",
+						Usage: "Enable verbose output",
+					},
+				},
 				Subcommands: []*cli.Command{
 					{
 						Name:    "all",
 						Aliases: []string{"a"},
 						Usage:   "Run all tasks",
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:  "verbose",
+								Usage: "Enable verbose output",
+							},
+						},
 						Action: func(c *cli.Context) error {
-							return tasks.RunTask("")
+							verbose := c.Bool("verbose")
+							return tasks.RunTask("", verbose)
 						},
 					},
 					{
 						Name:      "task",
 						Usage:     "Run a specific task",
 						ArgsUsage: "<task-name>",
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:  "verbose",
+								Usage: "Enable verbose output",
+							},
+						},
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() == 0 {
 								return fmt.Errorf("task name is required")
 							}
 							taskName := c.Args().First()
-							return tasks.RunTask(taskName)
+							verbose := c.Bool("verbose")
+							return tasks.RunTask(taskName, verbose)
 						},
 					},
 				},
