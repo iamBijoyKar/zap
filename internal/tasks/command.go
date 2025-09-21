@@ -55,7 +55,8 @@ func RunCommand(command []string, verbose bool) error {
 	return nil
 }
 
-func RunTaskWithRetries(task Task, verbose bool) error {
+func RunTaskWithRetries(task Task, verbose bool) (error, time.Duration) {
+	startTime := time.Now()
 	maxRetries := task.Retries
 	if maxRetries <= 0 {
 		maxRetries = 1
@@ -74,7 +75,8 @@ func RunTaskWithRetries(task Task, verbose bool) error {
 			if verbose && attempt > 1 {
 				out.PrintInfo(fmt.Sprintf("Task '%s' succeeded on attempt %d\n", task.Name, attempt))
 			}
-			return nil
+			duration := time.Since(startTime)
+			return nil, duration
 		}
 
 		lastErr = err
@@ -86,7 +88,8 @@ func RunTaskWithRetries(task Task, verbose bool) error {
 		}
 	}
 
-	return fmt.Errorf("task '%s' failed after %d attempts: %v", task.Name, maxRetries, lastErr)
+	duration := time.Since(startTime)
+	return fmt.Errorf("task '%s' failed after %d attempts: %v", task.Name, maxRetries, lastErr), duration
 }
 
 func RunTask(taskName string, verbose bool) error {
@@ -151,17 +154,15 @@ func RunTask(taskName string, verbose bool) error {
 					out.PrintDefault(fmt.Sprintf("Running parallel task: 🔨 %s\n > %s\n", color.CyanString(t.Name), strings.Join(t.Command, " ")))
 				}
 
-				err := RunTaskWithRetries(t, verbose)
+				err, duration := RunTaskWithRetries(t, verbose)
 
 				mutex.Lock()
 				if err != nil {
-					out.PrintError(fmt.Sprintf("Parallel task '%s' failed: %v\n", t.Name, err))
+					out.PrintError(fmt.Sprintf("Parallel task '%s' failed: %v (took %v)\n", t.Name, err, duration.Round(time.Millisecond)))
 					failed_tasks = append(failed_tasks, t)
 				} else {
 					completed_tasks = append(completed_tasks, t)
-					if verbose {
-						out.PrintDefault(fmt.Sprintf("Parallel task '%s' completed ✅\n", t.Name))
-					}
+					out.PrintDefault(fmt.Sprintf("Parallel task '%s' completed ✅ (took %v)\n", t.Name, duration.Round(time.Millisecond)))
 				}
 				mutex.Unlock()
 			}(task)
@@ -180,15 +181,15 @@ func RunTask(taskName string, verbose bool) error {
 
 		out.PrintDefault(fmt.Sprintf("%d. Running Task ... 🔨 %s\n > %s\n", idx+1, color.CyanString(task.Name), strings.Join(task.Command, " ")))
 
-		err := RunTaskWithRetries(task, verbose)
+		err, duration := RunTaskWithRetries(task, verbose)
 		if err != nil {
-			out.PrintError(fmt.Sprintf("Failed to complete the task! %v\n", err))
+			out.PrintError(fmt.Sprintf("Failed to complete the task! %v (took %v)\n", err, duration.Round(time.Millisecond)))
 			failed_tasks = append(failed_tasks, task)
 			continue
 		}
 
 		completed_tasks = append(completed_tasks, task)
-		out.PrintDefault("Task completed ✅\n\n")
+		out.PrintDefault(fmt.Sprintf("Task completed ✅ (took %v)\n\n", duration.Round(time.Millisecond)))
 	}
 
 	out.PrintDefault(fmt.Sprintf("Total Completed Tasks: %d\n", len(completed_tasks)))
@@ -217,12 +218,12 @@ func runSpecificTask(tasks []Task, taskName string, verbose bool) error {
 	// This could be enhanced later to check dependencies
 	out.PrintDefault(fmt.Sprintf("Running Task ... 🔨 %s\n > %s\n", color.CyanString(targetTask.Name), strings.Join(targetTask.Command, " ")))
 
-	err := RunTaskWithRetries(*targetTask, verbose)
+	err, duration := RunTaskWithRetries(*targetTask, verbose)
 	if err != nil {
-		out.PrintError(fmt.Sprintf("Failed to complete the task! %v\n", err))
+		out.PrintError(fmt.Sprintf("Failed to complete the task! %v (took %v)\n", err, duration.Round(time.Millisecond)))
 		return fmt.Errorf("task '%s' failed: %v", taskName, err)
 	}
 
-	out.PrintDefault("Task completed ✅\n")
+	out.PrintDefault(fmt.Sprintf("Task completed ✅ (took %v)\n", duration.Round(time.Millisecond)))
 	return nil
 }
