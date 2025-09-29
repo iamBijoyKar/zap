@@ -10,11 +10,35 @@ import (
 
 var Version string = "v1.0.0"
 
+var Yellow string = "\033[33m"
+var Cyan string = "\033[0;36m"
+var BoldWhite string = "\033[1;37m"
+var Reset string = "\033[0m"
+
+// Helper function to repeat a string
+func repeat(s string, count int) string {
+	result := ""
+	for i := 0; i < count; i++ {
+		result += s
+	}
+	return result
+}
+
 func main() {
 	app := &cli.App{
-		Name:    "zap",
-		Usage:   "A task runner for Go projects",
-		Version: Version,
+		Name:      "Zap",
+		UsageText: "Cli app to run tasks",
+		Version:   Version,
+		Action: func(ctx *cli.Context) error {
+			text := fmt.Sprintf(" %s#%s Welcome to ⚡ Zap Toolkit", Cyan, Reset)
+			border := "   ┌" + repeat("─", len(text)-9) + "┐\n"
+			border += "   │ " + text + "  │\n"
+			border += "   └" + repeat("─", len(text)-9) + "┘\n"
+			fmt.Print(border)
+			fmt.Printf("\n\t%s███████╗ █████╗ ██████╗\n\t╚══███╔╝██╔══██╗██╔══██╗\n\t  ███╔╝ ███████║██████╔╝\n\t ███╔╝  ██╔══██║██╔═══╝\n\t███████╗██║  ██║██║\n\t╚══════╝╚═╝  ╚═╝╚═╝%s\n\n", Yellow, Reset)
+			fmt.Printf("⚡Zap - Run your tasks sequentialy or parallely\n\n\tUse %sZap --help%s for more info\n", BoldWhite, Reset)
+			return nil
+		},
 		Commands: []*cli.Command{
 			{
 				Name:  "run",
